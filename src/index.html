@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yakuza: Like a Dragon · Doblaje al castellano</title>
+<style>
+  :root { color-scheme:dark; font-family:"Instrument Sans", "Segoe UI", sans-serif;
+    color:#f4f0e5; background:#160f11; --gold:#ffd09b; --line:#5d4147; --muted:#d3bcc2; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px;
+    background:radial-gradient(ellipse at 20% 0%, #350f17 0%, #160f11 65%); }
+  main { width:min(100%, 864px); border:1px solid #5c3941; border-radius:20px; overflow:hidden;
+    background:#211519; box-shadow:0 22px 65px #080506ba; }
+  .hero { position:relative; min-height:290px; display:flex; align-items:flex-end; padding:32px 40px;
+    background:linear-gradient(90deg,#21070dd9 3%,#21070d12 68%),
+      linear-gradient(0deg,#211519 0%,#21151900 55%),url("ilustracion.jpg") 72% center/cover; }
+  h1 { margin:0; font:750 clamp(42px,9vw,77px)/.9 "Barlow Condensed", "Segoe UI", sans-serif;
+    letter-spacing:-.045em; }
+  .subtitle { display:block; font-size:.43em; letter-spacing:-.025em; line-height:1.5; }
+  .edition { margin:0 0 14px; color:var(--gold); font-size:13px; font-weight:650; letter-spacing:.09em; }
+  .form { padding:7px 40px 28px; }
+  label { display:block; font-weight:650; font-size:14px; margin:0 0 9px; }
+  .path { display:flex; gap:8px; }
+  input,button { font:inherit; }
+  input { background:#170e12; color:#f4f0e5; padding:12px; min-width:0; flex:1; }
+  input,button { border:1px solid var(--line); border-radius:8px; }
+  button { padding:10px 14px; background:#352229; color:#f4f0e5; font-weight:600; cursor:pointer; }
+  button:hover:not(:disabled) { background:#51343c; }
+  button.primary { background:var(--gold); color:#201a0e; border-color:var(--gold); padding-inline:23px; }
+  button.primary:hover:not(:disabled) { background:#f4dba7; }
+  button:disabled { opacity:.48; cursor:default; }
+  :focus-visible { outline:2px solid #f4dba7; outline-offset:3px; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+  .status { display:flex; align-items:center; gap:10px; min-height:43px; padding:9px 11px;
+    border:1px solid #563740; border-radius:8px; color:var(--muted); font-size:14px; overflow-wrap:anywhere; }
+  .status::before { content:""; background:#86ae94; border-radius:50%; width:7px; height:7px; flex:0 0 7px; }
+  .status[data-error="true"] { color:#ffd3b1; }
+  .status[data-error="true"]::before { background:#f5ac79; }
+  .status[data-running="true"]::before { background:var(--gold); animation:pulse 1.1s infinite alternate; }
+  @keyframes pulse { to { opacity:.25; } }
+  footer { border-top:1px solid #4e333b; display:flex; align-items:center; justify-content:space-between;
+    gap:10px; padding:13px 40px; color:var(--muted); font-size:13px; }
+  footer strong { color:#f4f0e5; }
+  footer button { padding:7px 9px; background:transparent; font-size:13px; }
+  #coverage { color:var(--gold); margin:0 0 14px; font-size:14px; }
+  dialog { max-width:calc(100% - 28px); width:370px; background:#211519; color:inherit;
+    border:1px solid #6b4954; border-radius:12px; padding:22px; }
+  dialog::backdrop { background:#080d0bbc; }
+  dialog h2 { margin:0; font-size:19px; }
+  dialog p { line-height:1.5; color:var(--muted); }
+  @media (max-width:560px) {
+    body { padding:10px; }
+    .hero { min-height:232px; padding:24px; }
+    .form { padding:6px 24px 21px; }
+    footer { padding:11px 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; } }
+</style>
+<main>
+  <header class="hero">
+    <div>
+      <p class="edition">DOBLAJE AL CASTELLANO</p>
+      <h1>Yakuza<span class="subtitle">Like a Dragon</span></h1>
+    </div>
+  </header>
+  <section class="form" aria-label="Instalación">
+    <p id="coverage" hidden></p>
+    <label for="game">Carpeta del juego</label>
+    <div class="path">
+      <input id="game" list="libraries" placeholder="Carpeta del juego o runtime/media" spellcheck="false" autocomplete="off">
+      <datalist id="libraries"></datalist>
+      <button id="browse">Buscar…</button>
+    </div>
+    <div class="actions">
+      <button class="primary" data-action="instalar" disabled>Instalar doblaje</button>
+      <button data-action="estado" disabled>Comprobar</button>
+      <button id="remove" disabled>Desinstalar</button>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite">Buscando Yakuza en Steam…</div>
+  </section>
+  <footer>
+    <span>Doblaje hecho por <strong>DaRkFox</strong> con ayuda de IA</span>
+    <button id="exit">Cerrar</button>
+  </footer>
+</main>
+<dialog id="confirmation">
+  <h2>Desinstalar el doblaje</h2>
+  <p>Se quitarán las voces en castellano y su entrada en el selector del juego.</p>
+  <form method="dialog" class="actions">
+    <button value="cancel" autofocus>Cancelar</button>
+    <button class="primary" value="remove">Desinstalar</button>
+  </form>
+</dialog>
+<script>
+  const byId = id => document.getElementById(id);
+  const game = byId("game"), status = byId("status"), browse = byId("browse");
+  const buttons = Array.from(document.querySelectorAll("[data-action],#remove"));
+  let available = false, busy = false, choosing = false, closed = false, timer;
+  async function request(name, body) {
+    const options = body === undefined ? {} : {
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)
+    };
+    const response = await fetch(name, options);
+    if (!response.ok) throw new Error((await response.text()).trim());
+    return response.json();
+  }
+  function update() {
+    buttons.forEach(button => button.disabled = busy || choosing || !available || !game.value.trim());
+    game.disabled = busy || choosing;
+    browse.disabled = busy || choosing;
+    byId("exit").disabled = busy || choosing;
+  }
+  function render(data) {
+    busy = data.running;
+    status.textContent = data.message;
+    status.dataset.error = data.error;
+    status.dataset.running = data.running;
+    update();
+  }
+  function failure(error) { render({running:false,error:true,message:error.message}); }
+  async function poll() {
+    clearTimeout(timer);
+    try {
+      const state = await request("state");
+      render(state);
+      if (state.running) timer = setTimeout(poll, 550);
+    } catch (error) { failure(error); }
+  }
+  async function action(action) {
+    if (busy || choosing || !available || !game.value.trim()) return;
+    const path = game.value;
+    render({running:true,error:false,message:"Comprobando la instalación…"});
+    try { render(await request("action", {action, game:path})); await poll(); }
+    catch (error) { failure(error); }
+  }
+  document.querySelectorAll("[data-action]").forEach(button => {
+    button.addEventListener("click", () => action(button.dataset.action));
+  });
+  byId("remove").onclick = () => byId("confirmation").showModal();
+  byId("confirmation").onclose = event => {
+    if (event.target.returnValue === "remove") action("desinstalar");
+    event.target.returnValue = "";
+  };
+  game.oninput = update;
+  browse.onclick = async () => {
+    choosing = true;
+    update();
+    try {
+      const result = await request("browse", {});
+      if (result.error) throw new Error(result.error);
+      if (result.path) game.value = result.path;
+    } catch (error) { failure(error); }
+    finally { choosing = false; update(); }
+  };
+  byId("exit").onclick = async () => {
+    if (closed) return;
+    try {
+      await request("exit", {});
+      closed = true;
+      available = false;
+      render({running:false,error:false,message:"Instalador cerrado. Puedes cerrar esta pestaña."});
+      browse.disabled = game.disabled = byId("exit").disabled = true;
+      window.close();
+    } catch (error) { failure(error); }
+  };
+  (async () => {
+    try {
+      const config = await request("config");
+      available = config.available;
+      game.value = config.start;
+      config.games.forEach(path => byId("libraries").append(new Option(path, path)));
+      if (config.voices) {
+        const coverage = byId("coverage");
+        coverage.hidden = false;
+        coverage.textContent = Number(config.voices).toLocaleString("es-ES") + " voces en castellano";
+      }
+      update();
+      if (available && game.value) await action("estado"); else await poll();
+    } catch (error) { failure(error); }
+  })();
+</script>
+</html>
