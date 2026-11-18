@@ -139,6 +139,55 @@ func (p *patch) prepareAudio(data, target string, progress func(string)) error {
 	return publishNew(temp, target)
 }
 
+func (p *patch) updateAudio(data, root string, progress func(string)) error {
+	work, err := os.MkdirTemp(data, ".yakuza-actualizacion-")
+	if err != nil {
+		return err
+	}
+	next := filepath.Join(work, dubbedDirectory)
+	previous := filepath.Join(work, "anterior")
+	defer func() {
+		_ = p.removeAudio(next)
+		_ = os.Remove(work)
+	}()
+	if err := p.prepareAudio(data, next, progress); err != nil {
+		return err
+	}
+	choicePath, err := safeFile(root, "idioma.txt")
+	if err != nil {
+		return err
+	}
+	choice, err := os.ReadFile(choicePath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err == nil {
+		if err := os.WriteFile(filepath.Join(next, "idioma.txt"), choice, 0644); err != nil {
+			return err
+		}
+	}
+	if gameRunning() {
+		return errors.New("Cierra Yakuza y vuelve a instalar para aplicar la actualización")
+	}
+	if err := os.Rename(root, previous); err != nil {
+		return err
+	}
+	if err := publishNew(next, root); err != nil {
+		if owned, checkErr := installedDirectory(root); checkErr != nil {
+			return errors.Join(err, checkErr)
+		} else if owned {
+			if cleanupErr := p.removeAudio(root); cleanupErr != nil {
+				return errors.Join(err, cleanupErr)
+			}
+		}
+		return errors.Join(err, os.Rename(previous, root))
+	}
+	if err := p.removeAudio(previous); err != nil {
+		progress("Actualización instalada. Se conserva la carpeta anterior en " + previous)
+	}
+	return nil
+}
+
 func (p *patch) apply(game, action string, progress func(string)) error {
 	if action != "estado" && action != "instalar" && action != "desinstalar" {
 		return errors.New("Acción desconocida")
@@ -198,14 +247,13 @@ func (p *patch) apply(game, action string, progress func(string)) error {
 	var incomplete bool
 	if installed {
 		if err := p.verifyDub(root); err != nil {
-			if !errors.Is(loadErr, os.ErrNotExist) {
-				return err
-			}
 			incomplete = true
 		}
 	}
 	if action == "estado" {
 		switch {
+		case incomplete:
+			progress("El doblaje necesita actualizarse. Pulsa Instalar doblaje para completar los archivos.")
 		case installed && loadErr == nil:
 			progress("Doblaje instalado. Elige Castellano en Ajustes → Idioma de audio.")
 		case installed || loadErr == nil:
@@ -216,11 +264,11 @@ func (p *patch) apply(game, action string, progress func(string)) error {
 		return nil
 	}
 	if incomplete {
-		if err := p.removeAudio(root); err != nil {
+		if err := p.updateAudio(data, root, progress); err != nil {
 			return err
 		}
 	}
-	if !installed || incomplete {
+	if !installed {
 		if err := p.prepareAudio(data, root, progress); err != nil {
 			return err
 		}

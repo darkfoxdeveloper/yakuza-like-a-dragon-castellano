@@ -27,7 +27,7 @@ const marker = "Yakuza: Like a Dragon — tercera pista de voces\n"
 //go:embed tercer-idioma/build/dinput8.dll
 var loader []byte
 
-var awbName = regexp.MustCompile("^stream_en/(speech_[A-Za-z0-9_]+)\\.awb$")
+var awbName = regexp.MustCompile("^stream_en/((?:speech|auth)_[A-Za-z0-9_]+)\\.awb$")
 var digestPattern = regexp.MustCompile("^[0-9a-f]{64}$")
 
 type soundFile struct {

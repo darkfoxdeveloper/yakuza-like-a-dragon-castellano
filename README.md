@@ -1,6 +1,6 @@
 # Yakuza: Like a Dragon · Doblaje al castellano
 
-El mod añade Castellano al selector de audio junto a Inglés y Japonés. Incluye 11.176 tomas dobladas.
+El mod añade Castellano al selector de audio junto a Inglés y Japonés. Incluye 11.192 tomas dobladas, con la cinemática inicial del teatro y las exclamaciones finales del público.
 
 ![Captura del instalador de Windows con la ilustración de Yakuza: Like a Dragon](./Captura-Instalador-Yakuza.jpg)
 
